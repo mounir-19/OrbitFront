@@ -21,7 +21,7 @@ export default function HeroMain() {
       <div className="absolute inset-0 z-0">
         <video
           autoPlay muted loop playsInline
-          src="../../../bg.MOV"
+          src="/bg.MOV"
           className="w-full h-full object-cover"
         />
         <div
