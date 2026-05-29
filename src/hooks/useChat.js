@@ -69,6 +69,7 @@ export function useChat({ conversationId: initialConvId } = {}) {
         socket.emit('conversation:join', { conversationId: convId });
 
         const onNewMessage = (msg) => {
+            if (msg.conversation_id !== convId) return; 
             setMessages(prev => {
                 if (prev.find(m => m.id === msg.id)) return prev;
                 return [...prev, msg];
@@ -134,7 +135,7 @@ export function useChat({ conversationId: initialConvId } = {}) {
 
     return {
         messages,
-        setMessages, 
+        setMessages,
         sendMessage,
         startTyping,
         stopTyping,

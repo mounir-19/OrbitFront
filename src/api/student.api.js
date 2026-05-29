@@ -100,9 +100,14 @@ export const getInterview = (id) => api.get(`/interviews/${id}`);
 
 // GET /api/messages/conversations → list all threads + last message + unread count
 export const getConversations = () => api.get('/messages/conversations');
+export const getMyTasks = () => api.get('/tasks/mine');
+export const changePassword = (data) => api.put('/auth/change-password', data);
+
 
 // GET /api/messages/conversations/:id?limit=50&before= → paginated history
 export const getMessages = (id, params) => api.get(`/messages/conversations/${id}`, { params });
+export const getProjectTeam = (project_id) =>
+  api.get(`/projects/${project_id}/team`);
 
 // POST /api/messages/conversations → get-or-create thread
 // Body: { other_user_id, project_id? }

@@ -7,11 +7,9 @@ export const useAuthStore = create(
       user: null,
       token: null,
       setAuth: (user, token) => {
-        localStorage.setItem('tb_token', token);
         set({ user, token });
       },
       logout: () => {
-        localStorage.removeItem('tb_token');
         set({ user: null, token: null });
       },
     }),

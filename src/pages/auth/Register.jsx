@@ -3,9 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { register } from '../../api/auth.api';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
-
-const ROLES = ['student', 'client'];
-const DOMAINS = ['web_dev', 'mobile_dev', 'ui_ux_design', 'video_editing'];
+import logo from '../../assets/logo.png';
+import TermsModal from '../landing/TermsModal';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -13,157 +12,256 @@ export default function Register() {
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', email: '', phone: '',
-    password: '', role: 'student', domain: 'web_dev',
-    // student fields
-    university: '', wilaya: '', cv_url: '', portfolio_url: '',
-    // client fields
-    company: '', city: '',
+    password: '', confirm_password: '',
+    role: 'client',
+    company: '',
   });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    if (!form.first_name || !form.last_name || !form.email || !form.password || !form.phone) {
+    if (!form.first_name || !form.last_name || !form.email || !form.phone || !form.password || !form.confirm_password) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    if (form.password !== form.confirm_password) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    if (form.password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (!termsAccepted) {
+      toast.error("Please accept the Terms & Conditions");
       return;
     }
     setLoading(true);
     try {
-      const res = await register(form);
+      const { confirm_password, ...payload } = form;
+      const cleanPayload = Object.fromEntries(Object.entries(payload).filter(([_, v]) => v !== ''));
+      const res = await register({ ...cleanPayload, terms_accepted: termsAccepted });
       const { token, user } = res.data;
       setAuth(user, token);
-
-      const roleRoutes = {
-        student: '/student/board',
-        expert:  '/expert/dashboard',
-        client:  '/client/overview',
-        admin:   '/admin/dashboard',
-      };
-      navigate(roleRoutes[user.role] || '/student/board');
-      toast.success('Account created! Welcome to TalentBridge.');
+      toast.success('Account created! Welcome to Orbite.');
+      navigate('/client/overview');
     } catch (err) {
-      const msg = err.response?.data?.error || 'Registration failed. Try again.';
-      toast.error(msg);
+      toast.error(err.response?.data?.error || 'Registration failed. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-10 relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #0d0a2e 0%, #080818 35%, #0a1428 65%, #0d0a2e 100%)' }}
+    >
+      <div className="relative z-10 w-full max-w-[420px]">
+
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
-              <rect x="2" y="2" width="6" height="6" rx="1.5" fill="white" opacity="0.9"/>
-              <rect x="10" y="2" width="6" height="6" rx="1.5" fill="white" opacity="0.6"/>
-              <rect x="2" y="10" width="6" height="6" rx="1.5" fill="white" opacity="0.6"/>
-              <rect x="10" y="10" width="6" height="6" rx="1.5" fill="white" opacity="0.3"/>
-            </svg>
-          </div>
-          <span className="text-xl font-bold text-gray-900">TalentBridge</span>
+        <div className="flex justify-center mb-8">
+          <Link to="/"><img src={logo} alt="Orbite" className="h-36 w-auto block -m-3 -mb-10" /></Link>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl px-8 py-8 shadow-sm">
-          <h1 className="text-xl font-bold text-gray-900 mb-1">Create account</h1>
-          <p className="text-sm text-gray-500 mb-6">Join TalentBridge as a student or client.</p>
+        {/* Card */}
+        <div
+          className="rounded-2xl p-8"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(139,92,246,0.2)',
+            backdropFilter: 'blur(16px)',
+          }}
+        >
+          <h1 className="text-[1.4rem] font-extrabold text-white mb-1 text-center">Create account</h1>
+          <p className="text-[0.85rem] text-white/50 mb-7 text-center">Start your first project with Orbite.</p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {/* Role selector */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">I am a</label>
-              <div className="flex gap-2">
-                {ROLES.map(r => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => set('role', r)}
-                    className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors capitalize ${
-                      form.role === r
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
+            {/* Full name row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[0.82rem] text-white/70 mb-2">First name</label>
+                <input
+                  type="text"
+                  value={form.first_name}
+                  onChange={e => set('first_name', e.target.value)}
+                  placeholder="Mounir"
+                  className="w-full px-4 py-[13px] rounded-xl text-[0.9rem] text-white placeholder:text-white/30 focus:outline-none transition-all"
+                  style={{ background: 'rgba(30,30,60,0.8)', border: '1px solid rgba(100,80,180,0.3)' }}
+                  onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(100,80,180,0.3)'}
+                />
+              </div>
+              <div>
+                <label className="block text-[0.82rem] text-white/70 mb-2">Last name</label>
+                <input
+                  type="text"
+                  value={form.last_name}
+                  onChange={e => set('last_name', e.target.value)}
+                  placeholder="Rabahi"
+                  className="w-full px-4 py-[13px] rounded-xl text-[0.9rem] text-white placeholder:text-white/30 focus:outline-none transition-all"
+                  style={{ background: 'rgba(30,30,60,0.8)', border: '1px solid rgba(100,80,180,0.3)' }}
+                  onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(100,80,180,0.3)'}
+                />
               </div>
             </div>
 
-            {/* Name row */}
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="First name" value={form.first_name} onChange={v => set('first_name', v)} placeholder="Mounir" />
-              <Field label="Last name"  value={form.last_name}  onChange={v => set('last_name', v)}  placeholder="Rabahi" />
+            {/* Email */}
+            <div>
+              <label className="block text-[0.82rem] text-white/70 mb-2">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={e => set('email', e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+                className="w-full px-4 py-[13px] rounded-xl text-[0.9rem] text-white placeholder:text-white/30 focus:outline-none transition-all"
+                style={{ background: 'rgba(30,30,60,0.8)', border: '1px solid rgba(100,80,180,0.3)' }}
+                onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                onBlur={e => e.target.style.borderColor = 'rgba(100,80,180,0.3)'}
+              />
             </div>
 
-            <Field label="Email"  type="email" value={form.email}    onChange={v => set('email', v)}    placeholder="you@example.com" />
-            <Field label="Phone"  type="tel"   value={form.phone}    onChange={v => set('phone', v)}    placeholder="+213 555 000 000" />
-            <Field label="Password" type="password" value={form.password} onChange={v => set('password', v)} placeholder="Min. 8 characters" />
+            {/* Phone */}
+            <div>
+              <label className="block text-[0.82rem] text-white/70 mb-2">Phone number</label>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={e => set('phone', e.target.value)}
+                placeholder="+213 555 000 000"
+                className="w-full px-4 py-[13px] rounded-xl text-[0.9rem] text-white placeholder:text-white/30 focus:outline-none transition-all"
+                style={{ background: 'rgba(30,30,60,0.8)', border: '1px solid rgba(100,80,180,0.3)' }}
+                onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                onBlur={e => e.target.style.borderColor = 'rgba(100,80,180,0.3)'}
+              />
+            </div>
 
-            {/* Student-specific fields */}
-            {form.role === 'student' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Domain</label>
-                  <select
-                    value={form.domain}
-                    onChange={e => set('domain', e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-400 appearance-none bg-white"
-                  >
-                    {DOMAINS.map(d => (
-                      <option key={d} value={d}>{d.replace(/_/g, ' ')}</option>
-                    ))}
-                  </select>
-                </div>
-                <Field label="University" value={form.university} onChange={v => set('university', v)} placeholder="ESI Algiers" />
-                <Field label="Wilaya"     value={form.wilaya}     onChange={v => set('wilaya', v)}     placeholder="Oran" />
-                <Field label="Portfolio URL (optional)" value={form.portfolio_url} onChange={v => set('portfolio_url', v)} placeholder="https://..." />
-              </>
-            )}
+            {/* Company (optional) */}
+            <div>
+              <label className="block text-[0.82rem] text-white/70 mb-2">
+                Company name <span className="text-white/30">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={form.company}
+                onChange={e => set('company', e.target.value)}
+                placeholder="NovaClinic SARL"
+                className="w-full px-4 py-[13px] rounded-xl text-[0.9rem] text-white placeholder:text-white/30 focus:outline-none transition-all"
+                style={{ background: 'rgba(30,30,60,0.8)', border: '1px solid rgba(100,80,180,0.3)' }}
+                onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                onBlur={e => e.target.style.borderColor = 'rgba(100,80,180,0.3)'}
+              />
+            </div>
 
-            {/* Client-specific fields */}
-            {form.role === 'client' && (
-              <>
-                <Field label="Company name" value={form.company} onChange={v => set('company', v)} placeholder="NovaClinic SARL" />
-                <Field label="City"          value={form.city}   onChange={v => set('city', v)}    placeholder="Algiers" />
-              </>
-            )}
+            {/* Password */}
+            <div>
+              <label className="block text-[0.82rem] text-white/70 mb-2">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={e => set('password', e.target.value)}
+                  placeholder="Min. 8 characters"
+                  className="w-full px-4 py-[13px] pr-11 rounded-xl text-[0.9rem] text-white placeholder:text-white/30 focus:outline-none transition-all"
+                  style={{ background: 'rgba(30,30,60,0.8)', border: '1px solid rgba(100,80,180,0.3)' }}
+                  onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(100,80,180,0.3)'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 bg-transparent border-none cursor-pointer"
+                >
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-[0.82rem] text-white/70 mb-2">Confirm password</label>
+              <div className="relative">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  value={form.confirm_password}
+                  onChange={e => set('confirm_password', e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-[13px] pr-11 rounded-xl text-[0.9rem] text-white placeholder:text-white/30 focus:outline-none transition-all"
+                  style={{
+                    background: 'rgba(30,30,60,0.8)',
+                    border: `1px solid ${form.confirm_password && form.confirm_password !== form.password ? 'rgba(239,68,68,0.5)' : 'rgba(100,80,180,0.3)'}`,
+                  }}
+                  onFocus={e => e.target.style.borderColor = '#8b5cf6'}
+                  onBlur={e => e.target.style.borderColor = form.confirm_password && form.confirm_password !== form.password ? 'rgba(239,68,68,0.5)' : 'rgba(100,80,180,0.3)'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 bg-transparent border-none cursor-pointer"
+                >
+                  {showConfirm ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                  )}
+                </button>
+              </div>
+              {form.confirm_password && form.confirm_password !== form.password && (
+                <p className="text-[0.75rem] text-red-400 mt-1.5">Passwords do not match</p>
+              )}
+            </div>
+
+            {/* Terms checkbox */}
+            <div className="flex items-start gap-3 -mb-2">
+              <button
+                type="button"
+                onClick={() => setTermsAccepted(s => !s)}
+                className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-md border cursor-pointer transition-all flex items-center justify-center"
+                style={{
+                  background: termsAccepted ? '#8b5cf6' : 'rgba(30,30,60,0.8)',
+                  border: `1px solid ${termsAccepted ? '#8b5cf6' : 'rgba(100,80,180,0.4)'}`,
+                }}
+              >
+                {termsAccepted && (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                )}
+              </button>
+              <p className="text-[0.78rem] text-white/40 leading-relaxed">
+                I agree to the{' '}
+                <button type="button" onClick={() => setShowTerms(true)} className="text-violet-400 bg-transparent border-none cursor-pointer p-0 underline">Terms & Conditions</button>
+                {' '}and confirm all information provided is accurate.
+              </p>
+            </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-indigo-700 text-white rounded-lg text-sm font-semibold hover:bg-indigo-800 disabled:opacity-60 transition-colors mt-1"
+              className="w-full py-[13px] rounded-xl text-[0.95rem] font-semibold text-[#0a0a1a] bg-white cursor-pointer disabled:opacity-50 transition-all"
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>
           </form>
 
-          <p className="text-sm text-center text-gray-500 mt-5">
+          <p className="text-[0.82rem] text-center text-white/40 mt-6">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-600 font-medium hover:underline">
-              Sign in
-            </Link>
+            <Link to="/login" className="text-violet-400 font-medium">Sign in</Link>
           </p>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, type = 'text', value, onChange, placeholder }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-all"
-      />
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
     </div>
   );
 }

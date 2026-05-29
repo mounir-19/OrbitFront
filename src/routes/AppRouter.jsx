@@ -1,5 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
+import Services from '../pages/landing/Services';
+
+// Landing
+import LandingPage from "../pages/landing/LandingPage";
+import HowItWorks from '../pages/landing/HowItWorks';
+import About from '../pages/landing/About';
+
+
 
 // Auth
 import Login from '../pages/auth/Login';
@@ -18,8 +26,9 @@ import Applications from '../pages/student/Applications';
 import Messages from '../pages/student/Messages';
 import Earnings from '../pages/student/Earnings';
 import Certificates from '../pages/student/Certificates';
-import Profile from '../pages/student/Profile';
 import Settings from '../pages/student/Settings';
+import StudentAnalytics from '../pages/student/Analytics';
+import StudentAgenda from '../pages/student/Agenda';
 
 // Admin pages
 import OpsDashboard from '../pages/admin/OpsDashboard';
@@ -28,13 +37,14 @@ import Approvals from '../pages/admin/Approvals';
 import Disputes from '../pages/admin/Disputes';
 import Payouts from '../pages/admin/Payouts';
 import AllProjects from '../pages/admin/AllProjects';
-import { Experts, Students, Clients, Universities, AuditLog } from '../pages/admin/NetworkPages';
+import Users from '../pages/admin/Users';
+import AuditLog from '../pages/admin/AuditLog';
 import AdminSettings from '../pages/admin/AdminSettings';
 
 // Client pages
 import ClientOverview from '../pages/client/Overview';
 import ClientProjects from '../pages/client/Projects';
-import ProjectDetail from '../pages/client/ProjectDetail';
+import ClientProjectDetail from '../pages/client/ProjectDetail';
 import RequestProject from '../pages/client/RequestProject';
 import { ClientMessages, MyTeam, Invoices, Contracts, ClientSettings } from '../pages/client/ClientPages';
 
@@ -42,30 +52,46 @@ import { ClientMessages, MyTeam, Invoices, Contracts, ClientSettings } from '../
 import ExpertDashboard from '../pages/expert/Dashboard';
 import { ExpertProjects, ExpertProjectDetail, ExpertTasks } from '../pages/expert/Projects';
 import ExpertChat from '../pages/expert/Chat';
-import { ReviewQueue, Agenda, StudentPipeline } from '../pages/expert/ExpertPages';
-import { TaskBreakdown, TeamMatching } from '../pages/expert/AIAgents';
-import { ExpertWallet, ExpertAnalytics, ExpertSettings } from '../pages/expert/ExpertYouPages';
+import { StudentPipeline } from '../pages/expert/Students';
+import { StudentPipeline as VettingPipeline } from '../pages/expert/NewStudents';
+import Meetings from '../pages/expert/Meetings';
+import { ExpertWallet } from '../pages/expert/ExpertWallet';
+import { ExpertAnalytics } from '../pages/expert/ExpertAnalytics';
+import { ExpertSettings } from '../pages/expert/ExpertSettings';
+import PublishProject from '../pages/expert/PublishProject';
+import PublishedProjects from '../pages/expert/PublishedProjects';
+import PublishedProjectDetail from '../pages/expert/ProjectDetail';
 
 export default function AppRouter() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
 
+        {/* LANDING */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* PUBLIC */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/about" element={<About />} />
+
 
         {/* STUDENT */}
         <Route path="/student" element={<ProtectedRoute role="student"><StudentLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/student/board" replace />} />
           <Route path="board" element={<ProjectBoard />} />
           <Route path="projects" element={<MyProjects />} />
+          <Route path="projects/:id" element={<MyProjects />} />
           <Route path="applications" element={<Applications />} />
           <Route path="messages" element={<Messages />} />
           <Route path="earnings" element={<Earnings />} />
           <Route path="certificates" element={<Certificates />} />
-          <Route path="profile" element={<Profile />} />
+          <Route path="profile" element={<Navigate to="/student/settings" replace />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="analytics" element={<StudentAnalytics />} />
+          <Route path="agenda" element={<StudentAgenda />} />
         </Route>
 
         {/* ADMIN */}
@@ -77,12 +103,14 @@ export default function AppRouter() {
           <Route path="disputes" element={<Disputes />} />
           <Route path="payouts" element={<Payouts />} />
           <Route path="projects" element={<AllProjects />} />
-          <Route path="experts" element={<Experts />} />
-          <Route path="students" element={<Students />} />
-          <Route path="clients" element={<Clients />} />
-          <Route path="universities" element={<Universities />} />
+          <Route path="users" element={<Users />} />
           <Route path="audit-log" element={<AuditLog />} />
           <Route path="settings" element={<AdminSettings />} />
+          {/* Legacy redirects */}
+          <Route path="experts" element={<Navigate to="/admin/users" replace />} />
+          <Route path="students" element={<Navigate to="/admin/users" replace />} />
+          <Route path="clients" element={<Navigate to="/admin/users" replace />} />
+          <Route path="universities" element={<Navigate to="/admin/users" replace />} />
         </Route>
 
         {/* CLIENT */}
@@ -90,7 +118,7 @@ export default function AppRouter() {
           <Route index element={<Navigate to="/client/overview" replace />} />
           <Route path="overview" element={<ClientOverview />} />
           <Route path="projects" element={<ClientProjects />} />
-          <Route path="projects/:id" element={<ProjectDetail />} />
+          <Route path="projects/:id" element={<ClientProjectDetail />} />
           <Route path="request-project" element={<RequestProject />} />
           <Route path="messages" element={<ClientMessages />} />
           <Route path="invoices" element={<Invoices />} />
@@ -103,22 +131,22 @@ export default function AppRouter() {
         <Route path="/expert" element={<ProtectedRoute role="expert"><ExpertLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/expert/dashboard" replace />} />
           <Route path="dashboard" element={<ExpertDashboard />} />
+          <Route path="projects/publish" element={<PublishProject />} />
+          <Route path="projects/published" element={<PublishedProjects />} />
+          <Route path="projects/published/:id" element={<PublishedProjectDetail />} />
           <Route path="projects" element={<ExpertProjects />} />
           <Route path="projects/:id" element={<ExpertProjectDetail />} />
           <Route path="projects/:id/tasks" element={<ExpertTasks />} />
+          <Route path="students" element={<StudentPipeline />} />
+          <Route path="vetting" element={<VettingPipeline />} />
           <Route path="chat" element={<ExpertChat />} />
-          <Route path="review-queue" element={<ReviewQueue />} />
-          <Route path="agenda" element={<Agenda />} />
-          <Route path="student-pipeline" element={<StudentPipeline />} />
-          <Route path="task-breakdown" element={<TaskBreakdown />} />
-          <Route path="team-matching" element={<TeamMatching />} />
+          <Route path="meetings" element={<Meetings />} />
           <Route path="wallet" element={<ExpertWallet />} />
           <Route path="analytics" element={<ExpertAnalytics />} />
           <Route path="settings" element={<ExpertSettings />} />
         </Route>
 
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

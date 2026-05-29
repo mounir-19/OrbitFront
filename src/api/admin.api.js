@@ -30,6 +30,16 @@ export const getUser = (id) => api.get(`/users/${id}`);
 export const getStudentsList = (domain) =>
   api.get('/users/students/list', { params: domain ? { domain } : {} });
 
+// Backend: GET /api/users/students/pending?domain=
+// Admin sees all pending students; experts see only their assigned students (filtered server-side)
+export const getPendingStudents = (domain) =>
+  api.get('/users/students/pending', { params: domain ? { domain } : {} });
+
+// Backend: PATCH /api/users/:id/assign-expert → body: { expert_id }
+// Assigns a student to an expert for vetting; notifies both parties
+export const assignStudentToExpert = (student_id, expert_id) =>
+  api.patch(`/users/${student_id}/assign-expert`, { expert_id });
+
 // Backend: PUT /api/users/:id
 export const updateUser = (id, data) => api.put(`/users/${id}`, data);
 
@@ -128,3 +138,10 @@ export const getNotifications = (params) => api.get('/notifications', { params }
 
 // ─── AUTH ────────────────────────────────────────────────────────────────────
 export const changePassword = (data) => api.put('/auth/change-password', data);
+
+
+// ─── DISPUTES ─────────────────────────────────────────────────────────────────
+export const getDisputes = (params) => api.get('/disputes', { params });
+export const getDispute = (id) => api.get(`/disputes/${id}`);
+export const createDispute = (data) => api.post('/disputes', data);
+export const updateDispute = (id, data) => api.patch(`/disputes/${id}`, data);

@@ -18,5 +18,19 @@ export const login = (data) => api.post('/auth/login', data);
 // Returns: { id, last_name, first_name, email, phone, role, status, domain, created_at }
 export const getMe = () => api.get('/auth/me');
 
-
 export const changePassword = (data) => api.put('/auth/change-password', data);
+
+// Backend: POST /api/auth/forgot-password
+// Body: { email }
+// Returns: { message } — always succeeds to prevent email enumeration
+export const forgotPassword = (data) => api.post('/auth/forgot-password', data);
+
+// Backend: POST /api/auth/verify-otp
+// Body: { email, otp }
+// Returns: { message, user_id }
+export const verifyOtp = (data) => api.post('/auth/verify-otp', data);
+
+// Backend: POST /api/auth/reset-password
+// Body: { email, otp, new_password }
+// Returns: { message }
+export const resetPassword = (data) => api.post('/auth/reset-password', data);
