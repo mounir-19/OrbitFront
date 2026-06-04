@@ -26,6 +26,7 @@ const youLinks = [
 ];
 
 const titleMap = {
+  '/expert/projects/scope': 'Scope & Publish',     // ← new
   '/expert/projects/publish': 'Publish Project',
   '/expert/projects/published': 'Published Projects',
   '/expert/projects': 'Projects',
@@ -37,6 +38,15 @@ const titleMap = {
   '/expert/wallet': 'Wallet',
   '/expert/analytics': 'Analytics',
   '/expert/settings': 'Settings',
+};
+
+const getNotifIcon = (type) => {
+  switch (type) {
+    case 'success': return <CheckCircle className="text-green-500" size={16} />;
+    case 'warning': return <AlertCircle className="text-yellow-500" size={16} />;
+    case 'urgent': return <AlertCircle className="text-red-500" size={16} />;
+    default: return <Info className="text-[#7c3aed]" size={16} />;
+  }
 };
 
 export default function ExpertLayout() {
@@ -110,15 +120,6 @@ export default function ExpertLayout() {
     } catch { }
   };
 
-  const getNotifIcon = (type) => {
-    switch (type) {
-      case 'success': return <CheckCircle className="text-green-500" size={16} />;
-      case 'warning': return <AlertCircle className="text-yellow-500" size={16} />;
-      case 'urgent': return <AlertCircle className="text-red-500" size={16} />;
-      default: return <Info className="text-blue-400" size={16} />;
-    }
-  };
-
   const title = Object.entries(titleMap)
     .sort((a, b) => b[0].length - a[0].length)
     .find(([p]) => location.pathname.startsWith(p))?.[1] || '';
@@ -135,8 +136,10 @@ export default function ExpertLayout() {
   return (
     <div className="flex h-screen bg-white overflow-hidden relative">
 
+      {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
       <aside className={`flex-shrink-0 bg-[#0e0c1a] flex flex-col shadow-2xl transition-all duration-300 ease-in-out ${collapsed ? 'w-[72px]' : 'w-[208px]'}`}>
 
+        {/* Logo */}
         <div className="px-4 py-5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
@@ -164,13 +167,15 @@ export default function ExpertLayout() {
           </button>
         </div>
 
+        {/* Nav */}
         <nav className="flex-1 px-3 overflow-y-auto py-2">
           <NavSection label="Management" links={linksWithBadge} collapsed={collapsed} />
           <NavSection label="You" links={youLinks} collapsed={collapsed} />
         </nav>
 
+        {/* User footer */}
         <div className="px-3 py-4 border-t border-white/10 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#7c3aed] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
             {initials}
           </div>
           {!collapsed && (
@@ -179,8 +184,11 @@ export default function ExpertLayout() {
                 <div className="text-[13px] font-semibold text-white truncate">{fullName}</div>
                 <div className="text-[10px] text-gray-500 uppercase tracking-widest">Expert Mentor</div>
               </div>
-              <button onClick={logout} title="Logout"
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors group flex-shrink-0">
+              <button
+                onClick={logout}
+                title="Logout"
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors group flex-shrink-0"
+              >
                 <LogOut size={14} className="text-gray-500 group-hover:text-red-400 transition-colors" />
               </button>
             </>
@@ -188,22 +196,25 @@ export default function ExpertLayout() {
         </div>
       </aside>
 
+      {/* ── Main ─────────────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
 
+        {/* Live banner */}
         {liveBanner && (
-          <div className="bg-indigo-600 text-white px-6 py-2.5 flex items-center justify-between text-sm flex-shrink-0">
+          <div className="bg-[#7c3aed] text-white px-6 py-2.5 flex items-center justify-between text-sm flex-shrink-0">
             <div className="flex items-center gap-3">
               <Video size={15} />
               <span>Live Sync: <strong>{liveBanner.title}</strong> starting in 5 minutes</span>
             </div>
             <div className="flex items-center gap-3">
-              <button className="px-4 py-1.5 bg-white text-indigo-700 rounded-lg text-xs font-bold">Join Meeting</button>
+              <button className="px-4 py-1.5 bg-white text-[#7c3aed] rounded-lg text-xs font-bold">Join Meeting</button>
               <button className="px-4 py-1.5 border border-white/40 rounded-lg text-xs font-medium">Copy Link</button>
               <button onClick={() => setLiveBanner(null)}><X size={16} /></button>
             </div>
           </div>
         )}
 
+        {/* Header */}
         <header className="h-14 border-b border-gray-100 flex items-center justify-between px-6 flex-shrink-0 bg-white">
           <div className="text-sm text-gray-400">
             <span>Expert portal</span>
@@ -214,7 +225,10 @@ export default function ExpertLayout() {
               </>
             )}
           </div>
+
           <div className="flex items-center gap-2">
+
+            {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
@@ -238,8 +252,10 @@ export default function ExpertLayout() {
                       </p>
                     </div>
                     {unreadNotifs > 0 && (
-                      <button onClick={markAllAsRead}
-                        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-xs font-medium text-[#7c3aed] hover:text-[#6d28d9] flex items-center gap-1"
+                      >
                         <CheckCircle size={12} /> Mark all read
                       </button>
                     )}
@@ -251,8 +267,10 @@ export default function ExpertLayout() {
                         <p className="text-sm text-gray-400">No notifications</p>
                       </div>
                     ) : notifications.map(notif => (
-                      <div key={notif.id}
-                        className={`px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 transition-colors group relative ${!notif.read ? 'bg-indigo-50/30' : ''}`}>
+                      <div
+                        key={notif.id}
+                        className={`px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50 transition-colors group relative ${!notif.read ? 'bg-[#f5f3ff]/30' : ''}`}
+                      >
                         <div className="flex items-start gap-3">
                           <div className="flex-shrink-0 mt-0.5">{getNotifIcon(notif.type)}</div>
                           <div className="flex-1 min-w-0">
@@ -267,15 +285,19 @@ export default function ExpertLayout() {
                                 })}
                               </span>
                               {!notif.read && (
-                                <button onClick={() => markAsRead(notif.id)}
-                                  className="text-[10px] font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                                <button
+                                  onClick={() => markAsRead(notif.id)}
+                                  className="text-[10px] font-medium text-[#7c3aed] hover:text-[#6d28d9] flex items-center gap-1"
+                                >
                                   <Check size={10} /> Mark read
                                 </button>
                               )}
                             </div>
                           </div>
-                          <button onClick={() => deleteNotif(notif.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded">
+                          <button
+                            onClick={() => deleteNotif(notif.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                          >
                             <X size={13} className="text-gray-400 hover:text-red-500" />
                           </button>
                         </div>
@@ -286,11 +308,14 @@ export default function ExpertLayout() {
               )}
             </div>
 
-            <button onClick={() => navigate('/expert/chat')}
-              className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+            {/* Chat shortcut */}
+            <button
+              onClick={() => navigate('/expert/chat')}
+              className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+            >
               <MessageSquare size={17} className="text-gray-500" />
               {badges.chat > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-indigo-600 text-white text-[10px] flex items-center justify-center font-bold">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-[#7c3aed] text-white text-[10px] flex items-center justify-center font-bold">
                   {badges.chat}
                 </span>
               )}
@@ -298,7 +323,7 @@ export default function ExpertLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-white">
+        <main className="flex-1 overflow-y-auto bg-[#fafafa]">
           <Outlet />
         </main>
       </div>
@@ -306,6 +331,7 @@ export default function ExpertLayout() {
   );
 }
 
+// ─── NavSection ───────────────────────────────────────────────────────────────
 function NavSection({ label, links, collapsed }) {
   return (
     <div className="mb-2 mt-3">
@@ -331,11 +357,11 @@ function NavSection({ label, links, collapsed }) {
                 <Icon size={15} className={isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'} />
                 {!collapsed && <span>{label}</span>}
                 {badge > 0 && collapsed && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#7c3aed] rounded-full" />
                 )}
               </span>
               {badge > 0 && !collapsed && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${isActive ? 'bg-white/20 text-white' : 'bg-indigo-600 text-white'
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${isActive ? 'bg-white/20 text-white' : 'bg-[#7c3aed] text-white'
                   }`}>
                   {badge}
                 </span>

@@ -145,3 +145,5 @@ export const getDisputes = (params) => api.get('/disputes', { params });
 export const getDispute = (id) => api.get(`/disputes/${id}`);
 export const createDispute = (data) => api.post('/disputes', data);
 export const updateDispute = (id, data) => api.patch(`/disputes/${id}`, data);
+export const confirmAndStart = (project_id) =>
+  api.post(`/payments/confirm-and-start/${project_id}`);

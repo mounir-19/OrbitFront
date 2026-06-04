@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   FolderOpen, Users, TrendingUp,
   Clock, ChevronRight, Zap, BarChart2,
-  Video, Star, Award,
+  Video, Star,
 } from 'lucide-react';
 import {
   getProjects,
-  getApplications,
+  getPendingStudents,
   getInterviews,
 } from '../../api/expert.api';
 import { useAuthStore } from '../../store/authStore';
@@ -157,7 +157,7 @@ export default function ExpertDashboard() {
 
     Promise.allSettled([
       getProjects(),
-      getApplications(null, { status: 'pending' }),
+      getPendingStudents(),
       getInterviews(),
     ]).then(([projRes, appsRes, interviewsRes]) => {
       if (cancelled) return;
@@ -186,11 +186,17 @@ export default function ExpertDashboard() {
 
   const { projects, pendingApps, interviews, loading, error } = state;
 
-  // ── Derived ────────────────────────────────────────────────────────────────
-  const activeProjects = projects.filter(p =>
-    ['in_progress', 'accepted'].includes(p.status)
-  );
+  const [dismissed, setDismissed] = useState(new Set());
+
+  const dismiss = (key) => setDismissed(prev => new Set([...prev, key]));  // in_progress = started, client paid, work ongoing
+  const activeProjects = projects.filter(p => p.status === 'in_progress');
+
+  // accepted = assigned to expert, awaiting team selection + client payment
+  const pendingStartProjects = projects.filter(p => p.status === 'accepted');
+
+  // in_review = student submitted, needs expert sign-off
   const reviewProjects = projects.filter(p => p.status === 'in_review');
+
   const deliveredCount = projects.filter(p => p.status === 'delivered').length;
   const successRate = projects.length > 0
     ? Math.round((deliveredCount / projects.length) * 100) : null;
@@ -204,9 +210,9 @@ export default function ExpertDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fafafa] px-8 py-8 ">
+    <div className="min-h-screen bg-[#fafafa] px-8 py-8">
 
-      {/* ── Header ────────────────────────────────────────────────────────── */}
+      {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-[32px] font-bold text-[#111827] tracking-tight leading-none">
@@ -237,55 +243,83 @@ export default function ExpertDashboard() {
         </div>
       </div>
 
-      {/* ── Error ─────────────────────────────────────────────────────────── */}
+      {/* ── Error ───────────────────────────────────────────────────────── */}
       {error && (
         <div className="mb-6 bg-red-50 border border-red-100 rounded-2xl px-5 py-4 text-sm text-red-600">
           Failed to load dashboard: {error}
         </div>
       )}
 
-      {/* ── Stats ─────────────────────────────────────────────────────────── */}
+      {/* ── Alerts (above stats, max 3, real-time as dismissed) ──────────── */}
+      {!loading && (() => {
+        const allAlerts = [
+          ...pendingStartProjects.map(p => ({
+            key: `start-${p.project_id || p.id}`,
+            bg: 'bg-amber-50 border border-amber-100',
+            avatarBg: 'bg-amber-500',
+            initials: getInitials(p.title),
+            title: `New project assigned — ${p.title}`,
+            subtitle: `${p.client_name || 'Client'} · Select team & await client payment to start`,
+            badge: 'Setup Required',
+            badgeColor: 'bg-amber-500',
+            action: 'Open',
+            onAction: () => {
+              dismiss(`start-${p.project_id || p.id}`);
+              navigate(`/expert/projects/${p.project_id || p.id}/scope`);
+            },
+          })),
+          ...pendingApps.map(a => ({
+            key: `vetting-${a.id}`,
+            bg: 'bg-[#f0fdf4] border border-[#bbf7d0]',
+            avatarBg: 'bg-[#16a34a]',
+            initials: getInitials(`${a.first_name || ''} ${a.last_name || ''}`),
+            title: `New Candidate: ${[a.first_name, a.last_name].filter(Boolean).join(' ') || 'Candidate'}`,
+            subtitle: `Vetting Interview${a.project_title ? ` · ${a.project_title}` : ''}`,
+            badge: 'Interview Programmed',
+            badgeColor: 'bg-[#16a34a]',
+            action: 'Join',
+            onAction: () => { dismiss(`vetting-${a.id}`); navigate('/expert/students'); },
+          })),
+          ...reviewProjects.map(p => ({
+            key: `review-${p.project_id || p.id}`,
+            bg: 'bg-[#f5f3ff] border border-[#ddd6fe]',
+            avatarBg: 'bg-[#7c3aed]',
+            initials: getInitials(p.title),
+            title: `Milestone Approval — ${p.title}`,
+            subtitle: `${p.client_name || 'Client'} · Ready for expert sign-off`,
+            badge: 'Action Required',
+            badgeColor: 'bg-[#7c3aed]',
+            action: 'Review',
+            onAction: () => { dismiss(`review-${p.project_id || p.id}`); navigate(`/expert/projects/${p.project_id || p.id}`); },
+          })),
+        ].filter(a => !dismissed.has(a.key));
+        const visible = allAlerts.slice(0, 3);
+        const remaining = allAlerts.length - visible.length;
+        return (
+          <>
+            {visible.map(({ key, ...a }) => <AlertCard key={key} {...a} />)}
+            {remaining > 0 && (
+              <div className="flex items-center justify-end mb-3">
+                <button
+                  onClick={() => navigate('/expert/projects')}
+                  className="text-[11px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1"
+                >
+                  +{remaining} more <ChevronRight size={11} />
+                </button>
+              </div>
+            )}
+          </>
+        );
+      })()}
+
+      {/* ── Stats ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {stats.map(s => (
           <StatCard key={s.label} {...s} loading={loading} />
         ))}
       </div>
 
-      {/* ── Alerts — rendered only when real data exists ───────────────────── */}
-      {!loading && pendingApps.map(a => (
-        <AlertCard
-          key={a.id}
-          bg="bg-[#f0fdf4] border border-[#bbf7d0]"
-          avatarBg="bg-[#16a34a]"
-          initials={getInitials(`${a.first_name || ''} ${a.last_name || ''}`)}
-          title={`New Candidate: ${[a.first_name, a.last_name].filter(Boolean).join(' ') || 'Candidate'}`}
-          subtitle={`Vetting Interview${a.project_title ? ` · ${a.project_title}` : ''}`}
-          badge="Interview Programmed"
-          badgeColor="bg-[#16a34a]"
-          action="Join"
-          onAction={() => navigate('/expert/students')}
-        />
-      ))}
-
-      {!loading && reviewProjects.map(p => {
-        const pid = p.project_id || p.id;
-        return (
-          <AlertCard
-            key={pid}
-            bg="bg-[#f5f3ff] border border-[#ddd6fe]"
-            avatarBg="bg-[#7c3aed]"
-            initials={getInitials(p.title)}
-            title={`Milestone Approval — ${p.title}`}
-            subtitle={`${p.client_name || 'Client'} · Ready for expert sign-off`}
-            badge="Action Required"
-            badgeColor="bg-[#7c3aed]"
-            action="Review"
-            onAction={() => navigate(`/expert/projects/${pid}`)}
-          />
-        );
-      })}
-
-      {/* ── Main Grid ─────────────────────────────────────────────────────── */}
+      {/* ── Main Grid ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-5 mt-2">
 
         {/* Active Portfolios — 2/3 */}
@@ -316,7 +350,7 @@ export default function ExpertDashboard() {
             </div>
           ) : activeProjects.length === 0 ? (
             <div className="bg-white border border-[#ede9fe] rounded-2xl">
-              <Empty text="No active projects right now. New submissions will appear here." />
+              <Empty text="No active projects right now. Projects in progress will appear here." />
             </div>
           ) : (
             <div className="space-y-3">

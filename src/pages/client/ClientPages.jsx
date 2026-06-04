@@ -174,7 +174,7 @@ export function ClientMessages() {
 // ─── MY TEAM ──────────────────────────────────────────────────────────────────
 export function MyTeam() {
   return (
-    <div className="px-8 py-8 max-w-3xl">
+    <div className="px-8 py-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-1">My team</h1>
       <p className="text-sm text-gray-500 mb-8">Experts and students working with you across projects.</p>
       <div className="border border-gray-200 rounded-xl px-5 py-10 text-center text-sm text-gray-400">

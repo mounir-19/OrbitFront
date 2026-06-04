@@ -24,7 +24,6 @@ export const createTask = (project_id, data) => api.post('/tasks', data, { param
 export const createTasksBulk = (project_id, tasks) =>
   api.post('/tasks/bulk', { tasks }, { params: { project_id } });
 export const updateTask = (id, data) => api.put(`/tasks/${id}`, data);
-export const deleteTask = (id) => api.delete(`/tasks/${id}`);
 
 // ─── AI ──────────────────────────────────────────────────────────────────────
 export const getAiProjectRequirements = (data) => api.post('/ai/project-requirements', data);
@@ -34,6 +33,7 @@ export const approveTaskBreakdown = (project_id, tasks) =>
 export const runTeamMatching = (project_id) => api.post('/ai/team-matching', { project_id });
 export const approveTeam = (project_id, selected_student_ids) =>
   api.post('/ai/team-matching/approve', { selected_student_ids }, { params: { project_id } });
+export const deleteTask = (id) => api.delete(`/tasks/${id}`);
 
 // ─── RATINGS ─────────────────────────────────────────────────────────────────
 export const getRatings = (params) => api.get('/ratings', { params });

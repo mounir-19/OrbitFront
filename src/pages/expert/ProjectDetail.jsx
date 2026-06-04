@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     ChevronLeft, ChevronRight, Users, Calendar, Star,
     Sparkles, Check, X, Loader2, AlertCircle, RefreshCw,
-    ExternalLink, FileText, Play, FolderOpen, Code2, Globe,
+    FileText, Play, FolderOpen, Code2, Globe, Layers, Clock,
 } from 'lucide-react';
 import {
     getProject, getProjectApplications,
     updateApplication, approveTeam, runTeamMatching, startProject,
+    getMyEarnings,
 } from '../../api/expert.api';
+import api from '../../api/axiosInstance';
 import toast from 'react-hot-toast';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -127,19 +129,20 @@ export default function ProjectDetail() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Manual selection state
+    // Selection
     const [selectedIds, setSelectedIds] = useState(new Set());
 
-    // AI matching state
+    // AI matching
     const [aiRunning, setAiRunning] = useState(false);
-    const [aiSuggestion, setAiSuggestion] = useState(null); // [{ student_id, rank, reasoning }]
+    const [aiSuggestion, setAiSuggestion] = useState(null);
 
-    // Approve / start state
+    // Team + project start
     const [approving, setApproving] = useState(false);
     const [starting, setStarting] = useState(false);
     const [teamApproved, setTeamApproved] = useState(false);
+    const [clientPaid, setClientPaid] = useState(false);
 
-    // ── Fetch ─────────────────────────────────────────────────────────────────
+    // ── Fetch ──────────────────────────────────────────────────────────────────
     const fetchData = async () => {
         setLoading(true);
         setError(null);
@@ -148,9 +151,10 @@ export default function ProjectDetail() {
                 getProject(id),
                 getProjectApplications(id),
             ]);
+
             setProject(projRes.data);
             setApplications(appsRes.data || []);
-            // Pre-select already-selected students
+
             const alreadySelected = (appsRes.data || [])
                 .filter(a => a.status === 'selected')
                 .map(a => a.id);
@@ -158,6 +162,17 @@ export default function ProjectDetail() {
                 setSelectedIds(new Set(alreadySelected));
                 setTeamApproved(true);
             }
+
+            if (projRes.data?.status === 'in_progress') {
+                setClientPaid(true);
+                setTeamApproved(true);
+            }
+
+            // Check payment state directly from project fields
+            if (projRes.data?.payment_initiated || projRes.data?.payment_confirmed) {
+                setClientPaid(true);
+            }
+
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to load project');
         } finally {
@@ -167,7 +182,7 @@ export default function ProjectDetail() {
 
     useEffect(() => { fetchData(); }, [id]);
 
-    // ── Handlers ──────────────────────────────────────────────────────────────
+    // ── Handlers ───────────────────────────────────────────────────────────────
     const toggleSelect = (appId) => {
         setSelectedIds(prev => {
             const next = new Set(prev);
@@ -192,7 +207,6 @@ export default function ProjectDetail() {
             const res = await runTeamMatching(id);
             const suggested = res.data.suggested_team || [];
             setAiSuggestion(suggested);
-            // Auto-select AI picks
             const aiIds = new Set(
                 suggested.map(s => {
                     const app = applications.find(a => a.student_id === s.student_id);
@@ -215,7 +229,6 @@ export default function ProjectDetail() {
         }
         setApproving(true);
         try {
-            // Map application IDs → student_ids
             const studentIds = applications
                 .filter(a => selectedIds.has(a.id))
                 .map(a => a.student_id);
@@ -227,7 +240,7 @@ export default function ProjectDetail() {
                     ? { ...a, status: 'selected' }
                     : a.status === 'pending' ? { ...a, status: 'rejected' } : a
             ));
-            toast.success('Team approved! You can now start the project.');
+            toast.success('Team approved! Waiting for client to pay 50% to start.');
         } catch (err) {
             toast.error(err.response?.data?.error || 'Failed to approve team');
         } finally {
@@ -248,7 +261,7 @@ export default function ProjectDetail() {
         }
     };
 
-    // ── Render ────────────────────────────────────────────────────────────────
+    // ── Loading / Error ────────────────────────────────────────────────────────
     if (loading) return (
         <div className="px-8 py-8 space-y-4">
             {[1, 2, 3].map(n => (
@@ -274,15 +287,18 @@ export default function ProjectDetail() {
         ? new Date(project.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
         : null;
 
-    // Map AI suggestions by student_id for quick lookup
     const aiMap = {};
     (aiSuggestion || []).forEach(s => { aiMap[s.student_id] = s; });
 
     return (
         <div className="px-8 py-8 max-w-4xl">
+
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-6">
-                <span className="hover:text-gray-600 cursor-pointer" onClick={() => navigate('/expert/projects/published')}>
+                <span
+                    className="hover:text-gray-600 cursor-pointer"
+                    onClick={() => navigate('/expert/projects/published')}
+                >
                     Published Projects
                 </span>
                 <ChevronRight size={12} />
@@ -327,31 +343,27 @@ export default function ProjectDetail() {
             {/* Applications section */}
             <div className="bg-white border border-gray-200 rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-5">
-                    <div>
-                        <h2 className="text-base font-bold text-gray-900">
-                            Applications
-                            <span className="ml-2 text-sm font-normal text-gray-400">
-                                ({applications.length} total · {pendingApps.length} pending)
-                            </span>
-                        </h2>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {!teamApproved && (
-                            <button
-                                onClick={handleAiMatch}
-                                disabled={aiRunning || pendingApps.length === 0}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all
-                                    ${pendingApps.length > 0 && !aiRunning
-                                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 shadow-sm shadow-violet-200'
-                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                            >
-                                {aiRunning
-                                    ? <><Loader2 size={13} className="animate-spin" /> Matching…</>
-                                    : <><Sparkles size={13} /> AI Team Match</>
-                                }
-                            </button>
-                        )}
-                    </div>
+                    <h2 className="text-base font-bold text-gray-900">
+                        Applications
+                        <span className="ml-2 text-sm font-normal text-gray-400">
+                            ({applications.length} total · {pendingApps.length} pending)
+                        </span>
+                    </h2>
+                    {!teamApproved && (
+                        <button
+                            onClick={handleAiMatch}
+                            disabled={aiRunning || pendingApps.length === 0}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all
+                                ${pendingApps.length > 0 && !aiRunning
+                                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 shadow-sm shadow-violet-200'
+                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                        >
+                            {aiRunning
+                                ? <><Loader2 size={13} className="animate-spin" /> Matching…</>
+                                : <><Sparkles size={13} /> AI Team Match</>
+                            }
+                        </button>
+                    )}
                 </div>
 
                 {applications.length === 0 ? (
@@ -379,7 +391,7 @@ export default function ProjectDetail() {
                     </div>
                 )}
 
-                {/* Action bar */}
+                {/* ── Action bar ── */}
                 {applications.length > 0 && (
                     <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                         <span className="text-sm text-gray-500">
@@ -397,21 +409,24 @@ export default function ProjectDetail() {
                                         : <><Check size={13} /> Approve Team</>
                                     }
                                 </button>
-                            ) : (
+                            ) : !clientPaid ? (
                                 <div className="flex items-center gap-3">
                                     <span className="flex items-center gap-1.5 text-sm text-emerald-600 font-medium">
                                         <Check size={14} /> Team approved
                                     </span>
-                                    <button
-                                        onClick={handleStartProject}
-                                        disabled={starting}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                                    >
-                                        {starting
-                                            ? <><Loader2 size={13} className="animate-spin" /> Starting…</>
-                                            : <><Play size={13} /> Start Project</>
-                                        }
-                                    </button>
+                                    <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+                                        <Clock size={13} className="text-amber-600 flex-shrink-0" />
+                                        <span className="text-sm text-amber-700 font-medium">
+                                            Awaiting client 50% payment — project starts automatically
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                                    <Check size={13} className="text-emerald-600 flex-shrink-0" />
+                                    <span className="text-sm text-emerald-700 font-medium">
+                                        Client paid · Project is in progress
+                                    </span>
                                 </div>
                             )}
                         </div>

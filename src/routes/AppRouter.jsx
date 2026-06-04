@@ -7,8 +7,6 @@ import LandingPage from "../pages/landing/LandingPage";
 import HowItWorks from '../pages/landing/HowItWorks';
 import About from '../pages/landing/About';
 
-
-
 // Auth
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
@@ -40,13 +38,18 @@ import AllProjects from '../pages/admin/AllProjects';
 import Users from '../pages/admin/Users';
 import AuditLog from '../pages/admin/AuditLog';
 import AdminSettings from '../pages/admin/AdminSettings';
+import AdminProjectDetail from "../pages/admin/AdminProjectDetail";
 
 // Client pages
-import ClientOverview from '../pages/client/Overview';
-import ClientProjects from '../pages/client/Projects';
+import ClientOverview from '../pages/client/ClientOverview';
+import ClientProjects from '../pages/client/ClientProjects';
 import ClientProjectDetail from '../pages/client/ProjectDetail';
 import RequestProject from '../pages/client/RequestProject';
-import { ClientMessages, MyTeam, Invoices, Contracts, ClientSettings } from '../pages/client/ClientPages';
+import ClientMessages from '../pages/client/ClientMessages';
+import MyTeam from '../pages/client/MyTeam';
+import Invoices from '../pages/client/Invoices';
+import Contracts from '../pages/client/Contracts';
+import ClientSettings from '../pages/client/ClientSettings';
 
 // Expert pages
 import ExpertDashboard from '../pages/expert/Dashboard';
@@ -58,10 +61,9 @@ import Meetings from '../pages/expert/Meetings';
 import { ExpertWallet } from '../pages/expert/ExpertWallet';
 import { ExpertAnalytics } from '../pages/expert/ExpertAnalytics';
 import { ExpertSettings } from '../pages/expert/ExpertSettings';
-import PublishProject from '../pages/expert/PublishProject';
 import PublishedProjects from '../pages/expert/PublishedProjects';
 import PublishedProjectDetail from '../pages/expert/ProjectDetail';
-
+import ScopeProject from "../pages/expert/ScopeAndPublish";
 export default function AppRouter() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -76,7 +78,6 @@ export default function AppRouter() {
         <Route path="/services" element={<Services />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/about" element={<About />} />
-
 
         {/* STUDENT */}
         <Route path="/student" element={<ProtectedRoute role="student"><StudentLayout /></ProtectedRoute>}>
@@ -111,6 +112,7 @@ export default function AppRouter() {
           <Route path="students" element={<Navigate to="/admin/users" replace />} />
           <Route path="clients" element={<Navigate to="/admin/users" replace />} />
           <Route path="universities" element={<Navigate to="/admin/users" replace />} />
+          <Route path="/admin/projects/:id" element={<AdminProjectDetail />} />
         </Route>
 
         {/* CLIENT */}
@@ -131,7 +133,7 @@ export default function AppRouter() {
         <Route path="/expert" element={<ProtectedRoute role="expert"><ExpertLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/expert/dashboard" replace />} />
           <Route path="dashboard" element={<ExpertDashboard />} />
-          <Route path="projects/publish" element={<PublishProject />} />
+          <Route path="/expert/projects/:id/scope" element={<ScopeProject />} />
           <Route path="projects/published" element={<PublishedProjects />} />
           <Route path="projects/published/:id" element={<PublishedProjectDetail />} />
           <Route path="projects" element={<ExpertProjects />} />

@@ -3,6 +3,7 @@ import {
   Star, User, CreditCard, FolderOpen, GitBranch,
   ChevronDown, ChevronUp, CheckCircle, X, RefreshCw, Zap,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   getUsers, getAllProjects, getPayouts, getReferrals,
   updateUserStatus, updatePayment, assignExpert, updateReferral,
@@ -28,6 +29,14 @@ const getInitials = (str = '') =>
   str.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '??';
 
 // ─── Assign Expert Modal ──────────────────────────────────────────────────────
+// ─── REPLACE AssignExpertModal in Approvals.jsx with this ───────────────────
+// Change: admin sets budget + deadline before assigning expert
+// This ensures client sees the scoped budget when they get notified
+
+// ─── REPLACE AssignExpertModal in Approvals.jsx with this ───────────────────
+// Simplified: admin just picks expert, no budget/deadline
+// Expert will fill those when publishing to students
+
 function AssignExpertModal({ project, onClose, onAssigned }) {
   const [experts, setExperts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,12 +56,13 @@ function AssignExpertModal({ project, onClose, onAssigned }) {
   }, [project.service_type]);
 
   const handleAssign = async () => {
-    if (!selected) return;
+    if (!selected) { toast.error('Select an expert first.'); return; }
     setSaving(true);
     try {
-      await assignExpert(project.project_id || project.id, selected);
-      toast.success('Expert assigned — project is now under review');
-      onAssigned(project.project_id || project.id);
+      const pid = project.project_id || project.id;
+      await assignExpert(pid, selected);
+      toast.success('Expert assigned — they will scope and publish the project');
+      onAssigned(pid);
       onClose();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to assign expert');
@@ -60,9 +70,12 @@ function AssignExpertModal({ project, onClose, onAssigned }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={e => e.target === e.currentTarget && onClose()}>
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
       <div className="bg-white rounded-2xl shadow-2xl border border-[#ede9fe] w-full max-w-md overflow-hidden">
+
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#f5f3ff]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-[#7c3aed] flex items-center justify-center">
@@ -77,52 +90,79 @@ function AssignExpertModal({ project, onClose, onAssigned }) {
             <X size={16} className="text-[#9ca3af]" />
           </button>
         </div>
-        <div className="px-6 py-5">
-          <div className="px-3 py-2 bg-[#f5f3ff] border border-[#ede9fe] rounded-xl text-[12px] text-[#7c3aed] font-semibold mb-4">
-            Domain: {DOMAIN_LABELS[project.service_type] || project.service_type}
+
+        <div className="px-6 py-5 space-y-4">
+
+          <div className="bg-[#f5f3ff] border border-[#ede9fe] rounded-xl px-4 py-3">
+            <div className="text-[12px] font-bold text-[#7c3aed] mb-1">
+              {DOMAIN_LABELS[project.service_type] || project.service_type}
+            </div>
+            {project.description && (
+              <p className="text-[11px] text-[#6b7280] line-clamp-2">{project.description}</p>
+            )}
           </div>
-          {loading ? (
-            <div className="space-y-2 mb-4">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
-            </div>
-          ) : experts.length === 0 ? (
-            <p className="text-[13px] text-[#9ca3af] py-4">No active experts found for this domain.</p>
-          ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1 mb-4">
-              {experts.map(e => {
-                const isSelected = selected === e.id;
-                return (
-                  <button key={e.id} type="button" onClick={() => setSelected(e.id)}
-                    className={`w-full text-left px-4 py-3 rounded-xl border transition-all
-                      ${isSelected ? 'border-[#7c3aed] bg-[#f5f3ff]' : 'border-[#ede9fe] hover:border-[#c4b5fd] hover:bg-[#faf5ff]'}`}>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-[#ede9fe] flex items-center justify-center text-[11px] font-bold text-[#7c3aed] flex-shrink-0">
-                          {getInitials(`${e.first_name} ${e.last_name}`)}
+
+          <div>
+            <label className="block text-[10px] font-bold text-[#6b7280] uppercase tracking-widest mb-2">
+              Select Expert *
+            </label>
+            {loading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+              </div>
+            ) : experts.length === 0 ? (
+              <p className="text-[13px] text-[#9ca3af] py-4">No active experts found for this domain.</p>
+            ) : (
+              <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                {experts.map(e => {
+                  const isSelected = selected === e.id;
+                  return (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => setSelected(e.id)}
+                      className={`w-full text-left px-4 py-3 rounded-xl border transition-all
+                        ${isSelected
+                          ? 'border-[#7c3aed] bg-[#f5f3ff]'
+                          : 'border-[#ede9fe] hover:border-[#c4b5fd] hover:bg-[#faf5ff]'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-[#ede9fe] flex items-center justify-center text-[11px] font-bold text-[#7c3aed] flex-shrink-0">
+                            {getInitials(`${e.first_name} ${e.last_name}`)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[13px] font-semibold text-[#111827]">{e.first_name} {e.last_name}</div>
+                            <div className="text-[11px] text-[#9ca3af]">{DOMAIN_LABELS[e.domain] || e.domain || '—'}</div>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-[13px] font-semibold text-[#111827]">{e.first_name} {e.last_name}</div>
-                          <div className="text-[11px] text-[#9ca3af]">{DOMAIN_LABELS[e.domain] || e.domain || '—'}</div>
-                        </div>
+                        {isSelected && <CheckCircle size={15} className="text-[#7c3aed] flex-shrink-0" />}
                       </div>
-                      {isSelected && <CheckCircle size={15} className="text-[#7c3aed] flex-shrink-0" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <button onClick={handleAssign} disabled={!selected || saving}
-            className="w-full py-3 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-[11px] font-bold rounded-xl disabled:opacity-40 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest">
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-[#f5f3ff] border border-[#ede9fe] rounded-xl px-4 py-3 text-[11px] text-[#7c3aed]">
+            The expert will review the scope, set the budget and deadline, then publish to students. Admin approves before the client is notified.
+          </div>
+
+          <button
+            onClick={handleAssign}
+            disabled={!selected || saving}
+            className="w-full py-3 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-[11px] font-bold rounded-xl disabled:opacity-40 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest"
+          >
             {saving && <RefreshCw size={12} className="animate-spin" />}
-            {saving ? 'Assigning…' : 'Assign & Send to Expert'}
+            {saving ? 'Assigning…' : 'Assign to Expert'}
           </button>
         </div>
       </div>
     </div>
   );
 }
-
 // ─── Assign Student to Expert Modal ──────────────────────────────────────────
 function AssignStudentExpertModal({ student, onClose, onAssigned }) {
   const [experts, setExperts] = useState([]);
@@ -228,18 +268,28 @@ function AssignStudentExpertModal({ student, onClose, onAssigned }) {
 
 // ─── Project Row ──────────────────────────────────────────────────────────────
 function ProjectRow({ project, onAssigned }) {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const pid = project.project_id || project.id;
 
   return (
     <>
       <div className="px-6 py-4">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-[#ede9fe] flex items-center justify-center text-[11px] font-bold text-[#7c3aed] flex-shrink-0">
+          <div
+            onClick={() => navigate(`/admin/projects/${pid}`)}
+            className="w-10 h-10 rounded-full bg-[#ede9fe] flex items-center justify-center text-[11px] font-bold text-[#7c3aed] flex-shrink-0 cursor-pointer hover:bg-[#ddd6fe] transition-colors"
+          >
             {getInitials(project.title)}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-[#111827]">{project.title}</div>
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() => navigate(`/admin/projects/${pid}`)}
+          >
+            <div className="text-[13px] font-semibold text-[#111827] hover:text-[#7c3aed] transition-colors">
+              {project.title}
+            </div>
             <div className="text-[11px] text-[#9ca3af] mt-0.5">
               {project.client_name || '—'} · {DOMAIN_LABELS[project.service_type] || project.service_type}
               {project.total_price ? ` · ${Number(project.total_price).toLocaleString()} DZD` : ''}
@@ -265,6 +315,12 @@ function ProjectRow({ project, onAssigned }) {
               {project.deadline && <span>Deadline: {new Date(project.deadline).toLocaleDateString('en-GB')}</span>}
               {project.skills_needed && <span>Skills: {project.skills_needed}</span>}
             </div>
+            <button
+              onClick={() => navigate(`/admin/projects/${pid}`)}
+              className="mt-2 text-[11px] font-bold text-[#7c3aed] hover:underline"
+            >
+              View Full Detail →
+            </button>
           </div>
         )}
       </div>
@@ -274,7 +330,6 @@ function ProjectRow({ project, onAssigned }) {
     </>
   );
 }
-
 // ─── Referral Row ─────────────────────────────────────────────────────────────
 function ReferralRow({ referral, onAction }) {
   const [acting, setActing] = useState(null);

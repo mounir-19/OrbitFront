@@ -11,8 +11,7 @@ export const applyToProject = (project_id, data) =>
 
 // ─── MY PROJECTS ─────────────────────────────────────────────────────────────
 // Backend: GET /api/projects → same endpoint, student gets their domain projects
-export const getMyProjects = () => api.get('/projects', { params: { status: 'in_progress' } });
-
+export const getMyProjects = () => api.get('/projects', { params: { mine: true } });
 // Backend: GET /api/projects/:id → returns project + tasks array
 export const getProject = (id) => api.get(`/projects/${id}`);
 
